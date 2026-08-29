@@ -56,7 +56,7 @@ void main() async {
 
 ### 3. Activate and Wrap
 
-Call `activatePersistentWindowManager` and customize the window options, then wrap your root widget in `PersistentWindowWrapper`:
+Call `activatePersistentWindowManager` and if needed, customize the window options, then wrap your root widget in `PersistentWindowWrapper`:
 
 ```dart
 import 'package:flutter/material.dart';

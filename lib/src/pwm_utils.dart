@@ -58,7 +58,7 @@ Future<void> _centerWindowOnPrimaryDisplay() async {
 ///
 /// Returns `true` if the window manager was activated (i.e. running on a desktop platform),
 /// `false` otherwise (web or mobile), so callers can decide whether to wrap the app in [PersistentWindowWrapper].
-Future<bool> activatePersistentWindowManager({required CustomWindowOptions windowOptions}) async {
+Future<bool> activatePersistentWindowManager({CustomWindowOptions? windowOptions}) async {
   // We use the if statement to cut off the window management system.
   if (kIsWeb || !(Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
     return false;
