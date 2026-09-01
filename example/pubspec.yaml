@@ -1,7 +1,7 @@
 name: persistent_window_manager_example
-description: Demonstrates persistent_window_manager on Windows, macOS and Linux.
+description: Demonstrates how to use persistent_window_manager.
 publish_to: "none"
-version: 1.0.0+1
+version: 2.0.0+1
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
@@ -13,3 +13,4 @@ dependencies:
   persistent_window_manager:
     path: ../
   hydrated_bloc: ^11.0.0
+  path_provider: ^2.1.6

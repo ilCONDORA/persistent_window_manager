@@ -1,1 +1,2 @@
-export 'src/pwm_utils.dart' show CustomWindowOptions, activatePersistentWindowManager, PersistentWindowWrapper;
+export 'src/pe_wi_ma_wrapper.dart' show PeWiMaWrapper;
+export 'src/models/custom_window_options.dart' show CustomWindowOptions;

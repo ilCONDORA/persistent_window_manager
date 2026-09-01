@@ -1,41 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hydrated_bloc/hydrated_bloc.dart';
-import 'package:mocktail/mocktail.dart';
 import 'package:persistent_window_manager/persistent_window_manager.dart';
 import 'package:persistent_window_manager/src/cubit/pwm_cubit.dart';
+import 'package:persistent_window_manager/src/widgets/persistent_window_wrapper.dart';
 import 'package:window_manager/window_manager.dart';
 
-class _MockStorage extends Mock implements Storage {}
-
-void _setUpChannelMocks() {
-  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
-    const MethodChannel('dev.leanflutter.plugins/screen_retriever'),
-    (MethodCall call) async {
-      if (call.method == 'getPrimaryDisplay') {
-        return {
-          'id': '1',
-          'name': 'Test Display',
-          'size': {'width': 1920.0, 'height': 1080.0},
-          'scaleFactor': 1.0,
-        };
-      }
-      return null;
-    },
-  );
-
-  // getSize() and getPosition() both delegate to getBounds() internally.
-  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
-    const MethodChannel('window_manager'),
-    (MethodCall call) async {
-      if (call.method == 'getBounds') {
-        return {'x': 100.0, 'y': 100.0, 'width': 800.0, 'height': 600.0};
-      }
-      return null;
-    },
-  );
-}
+import 'test_utils.dart';
 
 Widget _buildWrapper({Widget child = const SizedBox()}) {
   return MediaQuery(
@@ -48,20 +18,15 @@ Widget _buildWrapper({Widget child = const SizedBox()}) {
 }
 
 void main() {
-  late _MockStorage storage;
+  late MockStorage storage;
   late PersistentWindowManagerCubit cubit;
 
   setUpAll(TestWidgetsFlutterBinding.ensureInitialized);
 
   setUp(() async {
-    storage = _MockStorage();
-    when(() => storage.read(any())).thenReturn(null);
-    when(() => storage.write(any(), any())).thenAnswer((_) async {});
-    when(() => storage.delete(any())).thenAnswer((_) async {});
-    when(() => storage.clear()).thenAnswer((_) async {});
-    HydratedBloc.storage = storage;
-
-    _setUpChannelMocks();
+    storage = MockStorage();
+    initializeMockStorage(storage);
+    setUpChannelMocks();
 
     cubit = PersistentWindowManagerCubit.instance;
     await pumpEventQueue(); // let _init() + setPositionScaleFactor() complete
@@ -69,6 +34,7 @@ void main() {
 
   tearDown(() async {
     await cubit.close();
+    clearChannelMocks();
   });
 
   test('CustomWindowOptions constructor forwards parameters to WindowOptions', () {

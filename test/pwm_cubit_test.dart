@@ -1,11 +1,9 @@
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hydrated_bloc/hydrated_bloc.dart';
-import 'package:mocktail/mocktail.dart';
 import 'package:persistent_window_manager/src/cubit/pwm_cubit.dart';
 
-class _MockStorage extends Mock implements Storage {}
+import 'test_utils.dart';
 
 void _setUpScreenRetrieverMock() {
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
@@ -25,19 +23,14 @@ void _setUpScreenRetrieverMock() {
 }
 
 void main() {
-  late _MockStorage storage;
+  late MockStorage storage;
   late PersistentWindowManagerCubit cubit;
 
   setUpAll(TestWidgetsFlutterBinding.ensureInitialized);
 
   setUp(() async {
-    storage = _MockStorage();
-    when(() => storage.read(any())).thenReturn(null);
-    when(() => storage.write(any(), any())).thenAnswer((_) async {});
-    when(() => storage.delete(any())).thenAnswer((_) async {});
-    when(() => storage.clear()).thenAnswer((_) async {});
-    HydratedBloc.storage = storage;
-
+    storage = MockStorage();
+    initializeMockStorage(storage);
     _setUpScreenRetrieverMock();
 
     cubit = PersistentWindowManagerCubit.instance;

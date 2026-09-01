@@ -12,7 +12,7 @@ Built on top of [`window_manager`](https://pub.dev/packages/window_manager), [`s
 - **Zero-flicker restoration:** Restores the last saved size, position, and window state before displaying the window on startup.
 - **Smart debouncing:** Listens to window events and persists position/size changes without impacting UI performance during live resizing.
 - **Off-screen prevention:** Ensures windows aren't restored outside visible bounds if monitor setups change.
-- **Cross-platform safety:** Automatically no-ops on web and mobile (`activatePersistentWindowManager` returns `false`), keeping your `main()` unified across all targets.
+- **Cross-platform safety:** Automatically no-ops on web and mobile platforms, keeping your `main()` unified across all targets.
 
 ## Supported Platforms
 
@@ -28,7 +28,7 @@ Add the package to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  persistent_window_manager: ^1.0.0
+  persistent_window_manager: ^2.0.0
 ```
 
 ### 2. Initialize `HydratedBloc.storage`
@@ -54,30 +54,46 @@ void main() async {
 }
 ```
 
-### 3. Activate and Wrap
+### 3. Wrap Your App
 
-Call `activatePersistentWindowManager` and if needed, customize the window options, then wrap your root widget in `PersistentWindowWrapper`:
+Wrap your root widget with `PeWiMaWrapper` to enable persistent window management:
 
 ```dart
 import 'package:flutter/material.dart';
 import 'package:persistent_window_manager/persistent_window_manager.dart';
 
 void main() async {
-  // ... HydratedStorage initialization
+  WidgetsFlutterBinding.ensureInitialized();
 
-  final bool useWindowManager = await activatePersistentWindowManager(
-    windowOptions: const CustomWindowOptions(
-      minimumSize: Size(700, 600),
-    ),
-  );
+  // ... HydratedBloc.storage initialization ...
 
   runApp(
-    useWindowManager
-        ? PersistentWindowWrapper(child: const MyApp())
-        : const MyApp(),
+    PeWiMaWrapper(
+      const MyApp(),
+      windowOptions: const CustomWindowOptions(
+        minimumSize: Size(700, 600),
+        title: 'My App',
+      ),
+    ),
   );
 }
+
+class MyApp extends StatelessWidget {
+  const MyApp();
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: Scaffold(
+        appBar: AppBar(title: const Text('Home')),
+        body: const Center(child: Text('Hello World')),
+      ),
+    );
+  }
+}
 ```
+
+**Note:** `PeWiMaWrapper` automatically handles platform detection. On web and mobile platforms, it simply renders the child widget without window management. This allows you to write a unified `main()` function that works across all targets.
 
 See `example/lib/main.dart` for a complete runnable implementation.
 
