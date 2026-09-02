@@ -6,14 +6,13 @@ import 'package:screen_retriever/screen_retriever.dart';
 
 part 'pwm_state.dart';
 
+/// Persists and restores desktop window size, position, maximized and full-screen state.
+///
+/// Resize/move events are debounced (250 ms) to avoid excessive writes during drags.
+/// Positions are normalised to primary-logical pixels so they survive monitor DPI changes.
+///
+/// **IMPORTANT:** [HydratedBloc.storage] must be initialised before this cubit is instantiated.
 class PersistentWindowManagerCubit extends HydratedCubit<PersistentWindowManagerState> {
-  /// Cubit that persists and restores desktop window size, position, maximized and full-screen state using [HydratedCubit].
-  ///
-  /// Exposes [changeWindowSize], [changeWindowPosition], [setWindowMaximizedState] and [setWindowFullScreenState].
-  /// Resize/move updates are debounced to avoid excessive writes during drag.
-  ///
-  /// **IMPORTANT:**
-  /// [HydratedBloc.storage] must be initialised via [HydratedStorage.build] before this cubit is instantiated.
   PersistentWindowManagerCubit() : super(PersistentWindowManagerInitial()) {
     _init();
   }
@@ -38,7 +37,7 @@ class PersistentWindowManagerCubit extends HydratedCubit<PersistentWindowManager
 
   static PersistentWindowManagerCubit? _instance;
 
-  /// Instance of the [PersistentWindowManagerCubit] to be used across the application.
+  /// Singleton; created on first access and reset to null after [close].
   static PersistentWindowManagerCubit get instance => _instance ??= PersistentWindowManagerCubit();
 
   // Debounce timers to avoid emitting state too frequently (e.g., during drag and resize).
@@ -56,7 +55,7 @@ class PersistentWindowManagerCubit extends HydratedCubit<PersistentWindowManager
     }
   }
 
-  /// Method called to change the state of the window size.
+  /// Saves [newSize]; debounced to avoid excessive writes during a drag.
   void changeWindowSize(Size newSize) {
     if (state.windowSize == newSize) return;
 
@@ -84,14 +83,14 @@ class PersistentWindowManagerCubit extends HydratedCubit<PersistentWindowManager
     });
   }
 
-  /// Method called to change the state of the window maximized state.
+  /// Saves the maximized state; no-op when the value has not changed.
   void setWindowMaximizedState(bool isMaximized) {
     if (state.isMaximized == isMaximized) return;
 
     emit(state.copyWith(isMaximized: isMaximized));
   }
 
-  /// Method called to change the state of the window full screen state.
+  /// Saves the full-screen state; no-op when the value has not changed.
   void setWindowFullScreenState(bool isFullScreen) {
     if (state.isFullScreen == isFullScreen) return;
 

@@ -1,9 +1,6 @@
 part of 'pwm_cubit.dart';
 
-/// [PersistentWindowManagerState] manages the state of the application's window state.
-///
-/// Here we define all the variables and methods used to manage the state.
-///
+/// Immutable snapshot of window geometry and display state persisted by [PersistentWindowManagerCubit].
 @immutable
 class PersistentWindowManagerState {
   final double? positionScaleFactor;
@@ -12,9 +9,7 @@ class PersistentWindowManagerState {
   final bool isMaximized;
   final bool isFullScreen;
 
-  /// Constructor for [PersistentWindowManagerState].
-  /// The only variables instantiated are [isMaximized] and [isFullScreen], both set to false;
-  /// the other three remain null until the first launch persists them.
+  /// All geometry fields are null until the first launch persists them.
   const PersistentWindowManagerState({
     this.positionScaleFactor,
     this.windowSize,
@@ -23,9 +18,7 @@ class PersistentWindowManagerState {
     this.isFullScreen = false,
   });
 
-  /// This method will be used by the other methods inside [PersistentWindowManagerCubit],
-  /// it's a simple way to set only one value or more without problems for the other ones.
-  ///
+  /// Returns a new instance with the specified fields replaced.
   PersistentWindowManagerState copyWith({
     double? positionScaleFactor,
     Size? windowSize,
@@ -97,12 +90,12 @@ class PersistentWindowManagerState {
 
   @override
   int get hashCode => Object.hash(
-    positionScaleFactor,
-    windowSize,
-    windowPosition,
-    isMaximized,
-    isFullScreen,
-  );
+        positionScaleFactor,
+        windowSize,
+        windowPosition,
+        isMaximized,
+        isFullScreen,
+      );
 }
 
 /// Initial state used by [PersistentWindowManagerCubit] on first launch.

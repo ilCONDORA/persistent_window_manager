@@ -65,6 +65,26 @@ void setUpChannelMocks() {
   );
 }
 
+/// Re-registers only the window_manager mock with configurable [isMaximized] and [isFullScreen]
+/// values, overriding the defaults set by [setUpChannelMocks]. Useful for testing guards that
+/// depend on window state.
+void setUpWindowManagerMockWith({bool isMaximized = false, bool isFullScreen = false}) {
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+    const MethodChannel('window_manager'),
+    (MethodCall call) async {
+      if (call.method == 'getBounds') {
+        return {'x': 100.0, 'y': 100.0, 'width': 800.0, 'height': 600.0};
+      }
+      if (call.method == 'isMaximized') return isMaximized;
+      if (call.method == 'isDocked') return false;
+      if (call.method == 'isMinimized') return false;
+      if (call.method == 'isFullScreen') return isFullScreen;
+      if (call.method == 'isVisibleOnAllWorkspaces') return false;
+      return null;
+    },
+  );
+}
+
 /// Clears mock method handlers for screen_retriever and window_manager channels.
 void clearChannelMocks() {
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(

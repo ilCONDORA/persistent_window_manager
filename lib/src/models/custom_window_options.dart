@@ -1,12 +1,9 @@
 import 'package:window_manager/window_manager.dart';
-
-import '../pe_wi_ma_wrapper.dart';
-import '../utils/pwm_utils.dart';
+import '../run_app_persistent_window_manager.dart';
 
 /// A custom implementation of [WindowOptions] that allows for more flexible window management.
 class CustomWindowOptions extends WindowOptions {
-  /// Creates a [CustomWindowOptions] instance to pass to
-  /// [PWMUtils.activatePersistentWindowManager] from [PeWiMaWrapper].
+  /// Creates a [CustomWindowOptions] instance to pass to [runAppPersistentWindowManager].
   ///
   /// Use this class to specify the window options of the application window.
   const CustomWindowOptions({

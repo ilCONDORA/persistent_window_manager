@@ -19,14 +19,11 @@ Future<void> main() async {
             : await getTemporaryDirectory().then((dir) => dir.path)),
   );
 
-  runApp(
-    // Wrap the app with PeWiMaWrapper to enable persistent window management.
-    PeWiMaWrapper(
-      const _ExampleApp(),
-      windowOptions: const CustomWindowOptions(
-        minimumSize: Size(700, 600),
-        title: 'Persistent Window Manager — Example',
-      ),
+  await runAppPersistentWindowManager(
+    const _ExampleApp(),
+    windowOptions: const CustomWindowOptions(
+      minimumSize: Size(700, 600),
+      title: 'Persistent Window Manager — Example',
     ),
   );
 }

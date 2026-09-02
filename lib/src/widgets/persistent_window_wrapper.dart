@@ -1,15 +1,15 @@
 import 'package:flutter/widgets.dart';
 import 'package:window_manager/window_manager.dart';
 import '../cubit/pwm_cubit.dart';
-import '../utils/pwm_utils.dart';
+import '../run_app_persistent_window_manager.dart';
 
-/// A wrapper widget that listens to window events and updates the state of the [PersistentWindowManagerCubit] accordingly.
+/// Listens to native window events and persists geometry changes via [PersistentWindowManagerCubit].
 ///
-/// It wraps the widget with this (only when [PWMUtils.activatePersistentWindowManager] returned `true`) so size,
-/// position, maximized and full-screen changes get persisted automatically.
+/// [runAppPersistentWindowManager] wraps the app with this widget automatically on desktop platforms.
 class PersistentWindowWrapper extends StatefulWidget {
-  /// Constructor for [PersistentWindowWrapper]. It takes the app's root [child] widget, which will be wrapped by
-  /// this widget to provide window management functionality.
+  /// Listens to native window events and persists geometry changes via [PersistentWindowManagerCubit].
+  ///
+  /// [runAppPersistentWindowManager] wraps the app with this widget automatically on desktop platforms.
   const PersistentWindowWrapper({super.key, required this.child});
 
   final Widget child;
@@ -29,6 +29,15 @@ class _PersistentWindowWrapperState extends State<PersistentWindowWrapper> with 
   /// especially in multi-monitor setups.
   Future<void> _changeWindowPosition() async {
     final double dpr = MediaQuery.devicePixelRatioOf(context);
+
+    // Guard: don't save position/size while in maximized or fullscreen
+    // state. During the transition out of maximize, getPosition() returns
+    // a transitional value that may be off-screen.
+    final bool maximized = await windowManager.isMaximized();
+    final bool fullscreen = await windowManager.isFullScreen();
+    if (maximized || fullscreen) {
+      return;
+    }
 
     pwmCubit.changeWindowPosition(rawPosition: await windowManager.getPosition(), currentMonitorScale: dpr);
   }

@@ -1,3 +1,12 @@
+## 3.0.0
+
+* **BREAKING CHANGE:** Replaced `PeWiMaWrapper` with `runAppPersistentWindowManager`, a drop-in replacement for `runApp` that performs window setup _before_ Flutter renders its first frame, achieving true zero-flicker restoration.
+* **BREAKING CHANGE:** Removed `PeWiMaWrapper` from the public API. Replace `runApp(PeWiMaWrapper(child, windowOptions: options))` with `await runAppPersistentWindowManager(child, windowOptions: options)`.
+* **New Feature:** Added a `dart run persistent_window_manager:setup` command (`--dry-run` supported) that patches the consuming app's native desktop runner — `windows/runner/win32_window.cpp`, `windows/runner/flutter_window.cpp`, `linux/my_application.cc`, `macos/Runner/MainFlutterWindow.swift` — so the window is never shown by the OS/engine before `windowManager.show()` is called. Without this step, `runAppPersistentWindowManager`'s zero-flicker restoration only takes full effect once the runner itself also defers showing the window; see the README's "Native runner setup" section, including a manual fallback for unrecognized templates.
+* **Bug fix:** `setPositionScaleFactor` is now explicitly awaited before reading window state, preventing a race condition where positions could be normalised against an uninitialised scale factor.
+* **Bug fix:** `_changeWindowPosition` now skips saving position while the window is maximized or in full screen, preventing transitional off-screen coordinates from being persisted during the unmaximize animation.
+* **Removed:** `PWMUtils` internal class.
+
 ## 2.0.0
 
 * **BREAKING CHANGE:** Replaced the two-step `activatePersistentWindowManager()` + `PersistentWindowWrapper` API with the new unified `PeWiMaWrapper` widget.

@@ -137,6 +137,86 @@ void main() {
     });
   });
 
+  group('_changeWindowPosition guard', () {
+    testWidgets('onWindowResize saves size but skips position when maximized', (tester) async {
+      setUpWindowManagerMockWith(isMaximized: true);
+      await tester.pumpWidget(_buildWrapper());
+      final listener = tester.state(find.byType(PersistentWindowWrapper)) as WindowListener;
+
+      listener.onWindowResize();
+      await tester.pump(); // resolve getSize
+      await tester.pump(); // resolve isMaximized + isFullScreen (guard fires)
+      await tester.pump(const Duration(milliseconds: 300)); // fire size debounce
+
+      expect(cubit.state.windowSize, const Size(800, 600));
+      expect(cubit.state.windowPosition, isNull);
+    });
+
+    testWidgets('onWindowResize saves size but skips position when fullscreen', (tester) async {
+      setUpWindowManagerMockWith(isFullScreen: true);
+      await tester.pumpWidget(_buildWrapper());
+      final listener = tester.state(find.byType(PersistentWindowWrapper)) as WindowListener;
+
+      listener.onWindowResize();
+      await tester.pump(); // resolve getSize
+      await tester.pump(); // resolve isMaximized + isFullScreen (guard fires)
+      await tester.pump(const Duration(milliseconds: 300)); // fire size debounce
+
+      expect(cubit.state.windowSize, const Size(800, 600));
+      expect(cubit.state.windowPosition, isNull);
+    });
+
+    testWidgets('onWindowMove skips position when maximized', (tester) async {
+      setUpWindowManagerMockWith(isMaximized: true);
+      await tester.pumpWidget(_buildWrapper());
+      final listener = tester.state(find.byType(PersistentWindowWrapper)) as WindowListener;
+
+      listener.onWindowMove();
+      await tester.pump(); // resolve isMaximized + isFullScreen (guard fires)
+
+      expect(cubit.state.windowPosition, isNull);
+    });
+
+    testWidgets('onWindowMove skips position when fullscreen', (tester) async {
+      setUpWindowManagerMockWith(isFullScreen: true);
+      await tester.pumpWidget(_buildWrapper());
+      final listener = tester.state(find.byType(PersistentWindowWrapper)) as WindowListener;
+
+      listener.onWindowMove();
+      await tester.pump(); // resolve isMaximized + isFullScreen (guard fires)
+
+      expect(cubit.state.windowPosition, isNull);
+    });
+
+    testWidgets('onWindowBlur saves size but skips position when maximized', (tester) async {
+      setUpWindowManagerMockWith(isMaximized: true);
+      await tester.pumpWidget(_buildWrapper());
+      final listener = tester.state(find.byType(PersistentWindowWrapper)) as WindowListener;
+
+      listener.onWindowBlur();
+      await tester.pump(); // resolve getSize
+      await tester.pump(); // resolve isMaximized + isFullScreen (guard fires)
+      await tester.pump(const Duration(milliseconds: 300)); // fire size debounce
+
+      expect(cubit.state.windowSize, const Size(800, 600));
+      expect(cubit.state.windowPosition, isNull);
+    });
+
+    testWidgets('onWindowBlur saves size but skips position when fullscreen', (tester) async {
+      setUpWindowManagerMockWith(isFullScreen: true);
+      await tester.pumpWidget(_buildWrapper());
+      final listener = tester.state(find.byType(PersistentWindowWrapper)) as WindowListener;
+
+      listener.onWindowBlur();
+      await tester.pump(); // resolve getSize
+      await tester.pump(); // resolve isMaximized + isFullScreen (guard fires)
+      await tester.pump(const Duration(milliseconds: 300)); // fire size debounce
+
+      expect(cubit.state.windowSize, const Size(800, 600));
+      expect(cubit.state.windowPosition, isNull);
+    });
+  });
+
   testWidgets('dispose removes the window listener without errors', (tester) async {
     await tester.pumpWidget(_buildWrapper());
     // Replacing the tree triggers dispose() → windowManager.removeListener(this)
