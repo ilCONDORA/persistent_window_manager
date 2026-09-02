@@ -95,7 +95,7 @@ class MyApp extends StatelessWidget {
 
 See `example/lib/main.dart` for a complete runnable implementation.
 
-### 4. Native runner setup <a id="native-runner-setup"></a>
+### 4. Native runner setup
 
 This step is what makes restoration truly flicker-free. `window_manager` (and therefore this package) only controls window visibility through its own `show()`/`hide()` calls — it has no say over the fact that the default Flutter desktop runner shows the window *on its own* as soon as it's ready, independently of and often before your saved position/size/maximized state has been applied. Without this step you may briefly see the window appear at a default position and then jump to its restored geometry.
 
@@ -121,6 +121,7 @@ The command is safe to re-run: every change is idempotent, and any file whose co
 
 <details>
 <summary>Manual setup (if the script reports a file as unrecognized)</summary>
+
 **`windows/runner/win32_window.cpp`** — in the `CreateWindow` call, remove `| WS_VISIBLE`:
  
 ```diff
