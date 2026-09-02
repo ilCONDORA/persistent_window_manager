@@ -2,7 +2,7 @@ name: persistent_window_manager
 description:
   "Saves and restores desktop window position, size, maximized and full-screen
   state between app launches on Desktop platforms."
-version: 3.0.0
+version: 3.0.1
 homepage: https://github.com/ilCONDORA/persistent_window_manager
 repository: https://github.com/ilCONDORA/persistent_window_manager
 

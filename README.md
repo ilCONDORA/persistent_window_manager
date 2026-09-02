@@ -9,7 +9,7 @@ Built on top of [`window_manager`](https://pub.dev/packages/window_manager), [`s
 
 ## Features
 
-- **Zero-flicker restoration:** Restores the last saved size, position, and window state before displaying the window on startup — once the one-time native setup below is applied (without it, the OS/engine may briefly show the window with default geometry first; see [Native runner setup](#native-runner-setup)).
+- **Zero-flicker restoration:** Restores the last saved size, position, and window state before displaying the window on startup — once the one-time native setup below is applied (without it, the OS/engine may briefly show the window with default geometry first; see [Native runner setup](#4-native-runner-setup)).
 - **Smart debouncing:** Listens to window events and persists position/size changes without impacting UI performance during live resizing.
 - **Off-screen prevention:** Ensures windows aren't restored outside visible bounds if monitor setups change.
 - **Cross-platform safety:** Automatically no-ops on web and mobile platforms, keeping your `main()` unified across all targets.
@@ -28,7 +28,7 @@ Add the package to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  persistent_window_manager: ^3.0.0
+  persistent_window_manager: ^3.0.1
 ```
 
 ### 2. Initialize `HydratedBloc.storage`

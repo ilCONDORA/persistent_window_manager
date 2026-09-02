@@ -1,3 +1,7 @@
+## 3.0.1
+
+* Updated README.
+
 ## 3.0.0
 
 * **BREAKING CHANGE:** Replaced `PeWiMaWrapper` with `runAppPersistentWindowManager`, a drop-in replacement for `runApp` that performs window setup _before_ Flutter renders its first frame, achieving true zero-flicker restoration.
