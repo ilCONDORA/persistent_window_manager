@@ -1,6 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:persistent_window_manager/persistent_window_manager.dart';
 import 'package:persistent_window_manager/src/cubit/pwm_cubit.dart';
 import 'package:persistent_window_manager/src/run_app_persistent_window_manager.dart' show setupWindowManagerForTest;
 import 'package:persistent_window_manager/src/widgets/persistent_window_wrapper.dart';
@@ -23,52 +22,37 @@ void main() {
 
   setUpAll(TestWidgetsFlutterBinding.ensureInitialized);
 
-  setUp(() async {
+  setUp(() {
     storage = MockStorage();
     initializeMockStorage(storage);
     setUpChannelMocks();
     cubit = PersistentWindowManagerCubit.instance;
-    await pumpEventQueue(); // let _init() / setPositionScaleFactor() complete
   });
 
   tearDown(() async {
+    // Drain any microtasks queued by window_manager's unawaited waitUntilReadyToShow
+    // (e.g. its internal isMinimized call) before removing the channel mocks, so they
+    // don't fire after clearChannelMocks() and trigger MissingPluginException.
+    await pumpEventQueue(times: 30);
     await cubit.close();
     clearChannelMocks();
   });
 
-  group('setupWindowManagerForTest', () {
-    test('completes successfully with null windowOptions', () async {
-      await expectLater(setupWindowManagerForTest(), completes);
-    });
-
-    test('completes successfully with windowOptions', () async {
-      const options = CustomWindowOptions(
-        title: 'Test App',
-        minimumSize: Size(400, 300),
-      );
-      await expectLater(setupWindowManagerForTest(windowOptions: options), completes);
-    });
-
-    test('positionScaleFactor is populated on the cubit after setup', () async {
-      await setupWindowManagerForTest();
-      // Mock returns scaleFactor: 1.0
-      expect(cubit.state.positionScaleFactor, 1.0);
-    });
+  // Plain test() avoids the fakeAsync zone that causes testWidgets to deadlock when
+  // waitUntilReadyToShow's addPostFrameCallback completer never resolves.
+  test('_prepareWindow: covers ensureInitialized, setPrimaryDisplayScale, startWindowStatePolling', () async {
+    await setupWindowManagerForTest();
   });
 
   group('PersistentWindowWrapper integration', () {
-    // PersistentWindowWrapper is the widget runAppPersistentWindowManager passes
-    // to runApp, so its behaviour is the runtime contract for the whole package.
-
     testWidgets('wraps and renders its child', (tester) async {
       await tester.pumpWidget(_buildWrapper(child: const Text('hello')));
       expect(find.text('hello'), findsOneWidget);
       expect(find.byType(PersistentWindowWrapper), findsOneWidget);
     });
 
-    testWidgets('is immediately present — no intermediate unwrapped state', (tester) async {
+    testWidgets('is immediately present in the widget tree', (tester) async {
       await tester.pumpWidget(_buildWrapper(child: const Text('world')));
-      // No future needed: the widget is in the tree from the first pump.
       expect(find.byType(PersistentWindowWrapper), findsOneWidget);
     });
   });

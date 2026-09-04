@@ -25,6 +25,7 @@ Future<void> main() async {
       minimumSize: Size(700, 600),
       title: 'Persistent Window Manager — Example',
     ),
+    enableWindowStateLogging: true,
   );
 }
 

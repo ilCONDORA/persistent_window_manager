@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrated_bloc/hydrated_bloc.dart';
@@ -42,43 +44,48 @@ void setUpChannelMocks() {
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
     const MethodChannel('window_manager'),
     (MethodCall call) async {
-      if (call.method == 'getBounds') {
-        return {'x': 100.0, 'y': 100.0, 'width': 800.0, 'height': 600.0};
-      }
-      if (call.method == 'isMaximized') {
-        return false;
-      }
-      if (call.method == 'isDocked') {
-        return false;
-      }
-      if (call.method == 'isMinimized') {
-        return false;
-      }
-      if (call.method == 'isFullScreen') {
-        return false;
-      }
-      if (call.method == 'isVisibleOnAllWorkspaces') {
-        return false;
-      }
+      if (call.method == 'getBounds') return {'x': 100.0, 'y': 100.0, 'width': 800.0, 'height': 600.0};
+      if (call.method == 'getSize') return {'width': 800.0, 'height': 600.0};
+      if (call.method == 'isMaximized') return false;
+      if (call.method == 'isDocked') return false;
+      if (call.method == 'isMinimized') return false;
+      if (call.method == 'isFullScreen') return false;
+      if (call.method == 'isVisibleOnAllWorkspaces') return false;
       return null;
     },
   );
 }
 
-/// Re-registers only the window_manager mock with configurable [isMaximized] and [isFullScreen]
-/// values, overriding the defaults set by [setUpChannelMocks]. Useful for testing guards that
-/// depend on window state.
-void setUpWindowManagerMockWith({bool isMaximized = false, bool isFullScreen = false}) {
+/// Re-registers the window_manager mock with configurable state flags.
+void setUpWindowManagerMockWith({bool isMinimized = false, bool isMaximized = false, bool isFullScreen = false}) {
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
     const MethodChannel('window_manager'),
     (MethodCall call) async {
       if (call.method == 'getBounds') {
         return {'x': 100.0, 'y': 100.0, 'width': 800.0, 'height': 600.0};
       }
+      if (call.method == 'isMinimized') return isMinimized;
       if (call.method == 'isMaximized') return isMaximized;
       if (call.method == 'isDocked') return false;
-      if (call.method == 'isMinimized') return false;
       if (call.method == 'isFullScreen') return isFullScreen;
+      if (call.method == 'isVisibleOnAllWorkspaces') return false;
+      return null;
+    },
+  );
+}
+
+/// Registers a window_manager mock where [isMinimized] blocks until [completer] is completed.
+/// Pass a [Completer] created inside [fakeAsync] so the fake zone controls its resolution.
+void setUpWindowManagerMockBlocking(Completer<bool> completer) {
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+    const MethodChannel('window_manager'),
+    (MethodCall call) async {
+      if (call.method == 'isMinimized') return await completer.future;
+      if (call.method == 'getBounds') return {'x': 100.0, 'y': 100.0, 'width': 800.0, 'height': 600.0};
+      if (call.method == 'getSize') return {'width': 800.0, 'height': 600.0};
+      if (call.method == 'isMaximized') return false;
+      if (call.method == 'isDocked') return false;
+      if (call.method == 'isFullScreen') return false;
       if (call.method == 'isVisibleOnAllWorkspaces') return false;
       return null;
     },

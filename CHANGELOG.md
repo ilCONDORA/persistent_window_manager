@@ -1,3 +1,9 @@
+## 3.1.0
+
+* **Architecture:** Replaced `WindowListener`-based event callbacks with a 750 ms polling loop (`Timer.periodic`). `PersistentWindowWrapper` no longer implements `WindowListener`; it uses `WidgetsBindingObserver.didChangeMetrics()` instead.
+* **State simplification:** Removed `positionScaleFactor` from `PersistentWindowManagerState`; scale handling is now an internal detail of `PersistentWindowManagerCubit`.
+* **Bug fix:** Fixed an issue when closing the window while minimized and then reopening it, it would restore to a broken size and position.
+
 ## 3.0.1
 
 * Updated README.

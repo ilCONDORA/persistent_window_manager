@@ -1,4 +1,5 @@
 import 'package:window_manager/window_manager.dart';
+
 import '../run_app_persistent_window_manager.dart';
 
 /// A custom implementation of [WindowOptions] that allows for more flexible window management.

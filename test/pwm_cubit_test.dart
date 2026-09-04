@@ -1,26 +1,12 @@
+import 'dart:async';
+
 import 'package:fake_async/fake_async.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:persistent_window_manager/src/cubit/pwm_cubit.dart';
 
 import 'test_utils.dart';
-
-void _setUpScreenRetrieverMock() {
-  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
-    const MethodChannel('dev.leanflutter.plugins/screen_retriever'),
-    (MethodCall call) async {
-      if (call.method == 'getPrimaryDisplay') {
-        return {
-          'id': '1',
-          'name': 'Test Display',
-          'size': {'width': 1920.0, 'height': 1080.0},
-          'scaleFactor': 1.0,
-        };
-      }
-      return null;
-    },
-  );
-}
 
 void main() {
   late MockStorage storage;
@@ -28,158 +14,172 @@ void main() {
 
   setUpAll(TestWidgetsFlutterBinding.ensureInitialized);
 
-  setUp(() async {
+  setUp(() {
     storage = MockStorage();
     initializeMockStorage(storage);
-    _setUpScreenRetrieverMock();
-
+    setUpChannelMocks();
     cubit = PersistentWindowManagerCubit.instance;
-    await pumpEventQueue(); // let _init() + setPositionScaleFactor() complete
   });
 
   tearDown(() async {
     await cubit.close();
+    clearChannelMocks();
   });
 
-  group('setWindowMaximizedState', () {
-    test('emits isMaximized: true when previously false', () {
-      cubit.setWindowMaximizedState(true);
-      expect(cubit.state.isMaximized, isTrue);
-    });
+  test('setPrimaryDisplayScale reads scaleFactor from the primary display', () async {
+    // Override: scaleFactor = 2.0 so the if-branch in setPrimaryDisplayScale is exercised.
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('dev.leanflutter.plugins/screen_retriever'),
+      (call) async => call.method == 'getPrimaryDisplay'
+          ? {
+              'id': '1',
+              'name': 'T',
+              'size': {'width': 1920.0, 'height': 1080.0},
+              'scaleFactor': 2.0
+            }
+          : null,
+    );
 
-    test('emits isMaximized: false after being true', () {
-      cubit.setWindowMaximizedState(true);
-      cubit.setWindowMaximizedState(false);
+    await cubit.setPrimaryDisplayScale(); // _primaryDisplayScale → 2.0
+    cubit.setCurrentMonitorScale(4.0); // _currentMonitorScale = 4.0
+    cubit.startWindowStatePolling();
+    await pumpEventQueue(times: 30);
+
+    // position = 100 × (4.0 / 2.0) = 200; would be 400 if primary remained 1.0
+    expect(cubit.state.windowPosition, const Offset(200, 200));
+  });
+
+  test('setCurrentMonitorScale: accepts valid scale, rejects ≤ 0, ignores same value', () async {
+    cubit.setCurrentMonitorScale(2.0); // valid → _currentMonitorScale = 2.0
+    cubit.setCurrentMonitorScale(0.0); // ≤ 0 → rejected
+    cubit.setCurrentMonitorScale(2.0); // same value → no-op
+    cubit.startWindowStatePolling();
+    await pumpEventQueue(times: 30);
+
+    // _currentMonitorScale = 2.0, primary = 1.0 → position = 100 × 2.0 = 200
+    expect(cubit.state.windowPosition, const Offset(200, 200));
+  });
+
+  group('startWindowStatePolling', () {
+    test('immediate poll updates size, position, and flags', () async {
+      cubit.startWindowStatePolling();
+      await pumpEventQueue(times: 30);
+
+      expect(cubit.state.windowSize, const Size(800, 600));
+      expect(cubit.state.windowPosition, const Offset(100, 100));
       expect(cubit.state.isMaximized, isFalse);
-    });
-
-    test('does not change state when value is already the same', () {
-      final stateBefore = cubit.state;
-      cubit.setWindowMaximizedState(false); // already false
-      expect(cubit.state, equals(stateBefore));
-    });
-  });
-
-  group('setWindowFullScreenState', () {
-    test('emits isFullScreen: true when previously false', () {
-      cubit.setWindowFullScreenState(true);
-      expect(cubit.state.isFullScreen, isTrue);
-    });
-
-    test('emits isFullScreen: false after being true', () {
-      cubit.setWindowFullScreenState(true);
-      cubit.setWindowFullScreenState(false);
       expect(cubit.state.isFullScreen, isFalse);
     });
 
-    test('does not change state when value is already the same', () {
-      final stateBefore = cubit.state;
-      cubit.setWindowFullScreenState(false); // already false
-      expect(cubit.state, equals(stateBefore));
+    test('duplicate call is a no-op (timer-guard fires, logs warning)', () async {
+      cubit.startWindowStatePolling();
+      cubit.startWindowStatePolling(); // _pollingTimer != null → guard
+      await pumpEventQueue(times: 30);
+
+      expect(cubit.state.windowSize, const Size(800, 600));
     });
   });
 
-  group('changeWindowSize debounced', () {
-    test('emits new windowSize after the debounce period elapses', () {
-      fakeAsync((async) {
-        cubit.changeWindowSize(const Size(1280, 720));
-        async.elapse(const Duration(milliseconds: 300));
-        expect(cubit.state.windowSize, const Size(1280, 720));
-      });
+  group('polling skips getSize/getPosition when window is', () {
+    test('maximized', () async {
+      setUpWindowManagerMockWith(isMaximized: true);
+      cubit.startWindowStatePolling();
+      await pumpEventQueue(times: 30);
+
+      expect(cubit.state.windowSize, isNull);
+      expect(cubit.state.windowPosition, isNull);
+      expect(cubit.state.isMaximized, isTrue);
     });
 
-    test('does not emit when the size already matches the current state', () {
-      fakeAsync((async) {
-        cubit.changeWindowSize(const Size(1280, 720));
-        async.elapse(const Duration(milliseconds: 300));
-        final stateBefore = cubit.state;
+    test('minimized', () async {
+      setUpWindowManagerMockWith(isMinimized: true);
+      cubit.startWindowStatePolling();
+      await pumpEventQueue(times: 30);
 
-        cubit.changeWindowSize(const Size(1280, 720));
-        async.elapse(const Duration(milliseconds: 300));
-
-        expect(cubit.state, equals(stateBefore));
-      });
+      expect(cubit.state.windowSize, isNull);
+      expect(cubit.state.windowPosition, isNull);
     });
 
-    test('emits only the last size when called multiple times before the debounce fires', () {
-      fakeAsync((async) {
-        cubit.changeWindowSize(const Size(800, 600));
-        cubit.changeWindowSize(const Size(900, 700));
-        cubit.changeWindowSize(const Size(1280, 720));
-        async.elapse(const Duration(milliseconds: 300));
-        expect(cubit.state.windowSize, const Size(1280, 720));
-      });
+    test('fullscreen', () async {
+      setUpWindowManagerMockWith(isFullScreen: true);
+      cubit.startWindowStatePolling();
+      await pumpEventQueue(times: 30);
+
+      expect(cubit.state.windowSize, isNull);
+      expect(cubit.state.windowPosition, isNull);
+      expect(cubit.state.isFullScreen, isTrue);
     });
   });
 
-  group('changeWindowPosition debounced', () {
-    test('emits raw offset unchanged when primary and monitor scale are equal', () {
-      fakeAsync((async) {
-        cubit.changeWindowPosition(
-          rawPosition: const Offset(200, 150),
-          currentMonitorScale: 1.0,
-        );
-        async.elapse(const Duration(milliseconds: 300));
-        expect(cubit.state.windowPosition, const Offset(200, 150));
-      });
+  test('polling does not emit when the state is already up-to-date', () {
+    fakeAsync((fake) {
+      cubit.startWindowStatePolling();
+      fake.flushMicrotasks(); // first poll sets state
+
+      final stateAfterFirstPoll = cubit.state;
+
+      fake.elapse(const Duration(milliseconds: 750)); // timer → second poll
+      fake.flushMicrotasks(); // second poll completes with same values
+
+      expect(cubit.state, same(stateAfterFirstPoll));
     });
+  });
 
-    test('normalizes offset when the monitor scale differs from the primary scale', () {
-      fakeAsync((async) {
-        // primary = 1.0 (from mock), monitor = 2.0 → normalized = raw × (2 / 1)
-        cubit.changeWindowPosition(
-          rawPosition: const Offset(100, 50),
-          currentMonitorScale: 2.0,
-        );
-        async.elapse(const Duration(milliseconds: 300));
-        expect(cubit.state.windowPosition, const Offset(200, 100));
-      });
+  test('_isPolling guard skips a concurrent poll tick', () {
+    fakeAsync((fake) {
+      final completer = Completer<bool>(); // created inside fake zone
+      setUpWindowManagerMockBlocking(completer);
+
+      cubit.startWindowStatePolling();
+      // First poll is suspended at: await windowManager.isMinimized()
+
+      fake.elapse(const Duration(milliseconds: 750));
+      // Timer fires → second _pollWindowState() call → _isPolling is true → guard returns
+
+      expect(cubit.state.windowSize, isNull); // first poll not yet done
+
+      completer.complete(false); // unblock first poll
+      fake.flushMicrotasks(); // first poll completes, state updates
+
+      expect(cubit.state.windowSize, const Size(800, 600));
+
+      setUpChannelMocks(); // restore for tearDown
     });
+  });
 
-    test('does not emit when the normalized position matches the current state', () {
-      fakeAsync((async) {
-        cubit.changeWindowPosition(
-          rawPosition: const Offset(200, 150),
-          currentMonitorScale: 1.0,
-        );
-        async.elapse(const Duration(milliseconds: 300));
-        final stateBefore = cubit.state;
+  test('polling recovers after an error (_isPolling resets in finally)', () {
+    fakeAsync((fake) {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+        const MethodChannel('window_manager'),
+        (call) async {
+          if (call.method == 'isMinimized') throw Exception('channel error');
+          return null;
+        },
+      );
 
-        cubit.changeWindowPosition(
-          rawPosition: const Offset(200, 150),
-          currentMonitorScale: 1.0,
-        );
-        async.elapse(const Duration(milliseconds: 300));
+      cubit.startWindowStatePolling();
+      fake.flushMicrotasks(); // first poll: throws → catch, _isPolling = false in finally
 
-        expect(cubit.state, equals(stateBefore));
-      });
+      setUpChannelMocks(); // restore working mock
+      fake.elapse(const Duration(milliseconds: 750)); // second poll: succeeds
+      fake.flushMicrotasks();
+
+      expect(cubit.state.windowSize, const Size(800, 600));
     });
   });
 
   group('serialization', () {
-    test('toJson reflects the current state', () {
-      cubit.setWindowMaximizedState(true);
-      final json = cubit.toJson(cubit.state);
-      expect(json?['isMaximized'], isTrue);
-      expect(json?['isFullScreen'], isFalse);
+    test('toJson / fromJson round-trip preserves all fields', () {
+      const state = PersistentWindowManagerState(
+        windowSize: Size(1280, 720),
+        windowPosition: Offset(50, 75),
+        isMaximized: true,
+      );
+      expect(cubit.fromJson(cubit.toJson(state)!), equals(state));
     });
 
-    test('fromJson deserializes a complete JSON map correctly', () {
+    test('fromJson handles null optional fields', () {
       final state = cubit.fromJson({
-        'positionScaleFactor': 1.5,
-        'windowSize': {'width': 1280.0, 'height': 720.0},
-        'windowPosition': {'x': 50.0, 'y': 75.0},
-        'isMaximized': true,
-        'isFullScreen': false,
-      });
-      expect(state?.windowSize, const Size(1280, 720));
-      expect(state?.windowPosition, const Offset(50, 75));
-      expect(state?.isMaximized, isTrue);
-    });
-
-    test('fromJson handles null optional fields gracefully', () {
-      final state = cubit.fromJson({
-        'positionScaleFactor': null,
         'windowSize': null,
         'windowPosition': null,
         'isMaximized': false,
@@ -190,12 +190,12 @@ void main() {
     });
   });
 
-  test('a new instance is returned by the instance getter after the singleton is closed', () async {
+  test('close cancels the polling timer and resets the singleton', () async {
+    cubit.startWindowStatePolling(); // ensures _pollingTimer != null
     await cubit.close();
-    final newCubit = PersistentWindowManagerCubit.instance;
-    await pumpEventQueue();
 
+    final newCubit = PersistentWindowManagerCubit.instance;
     expect(newCubit, isNot(same(cubit)));
-    cubit = newCubit; // hand off to tearDown for cleanup
+    cubit = newCubit; // hand off to tearDown
   });
 }

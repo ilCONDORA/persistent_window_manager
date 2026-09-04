@@ -3,7 +3,6 @@ part of 'pwm_cubit.dart';
 /// Immutable snapshot of window geometry and display state persisted by [PersistentWindowManagerCubit].
 @immutable
 class PersistentWindowManagerState {
-  final double? positionScaleFactor;
   final Size? windowSize;
   final Offset? windowPosition;
   final bool isMaximized;
@@ -11,7 +10,6 @@ class PersistentWindowManagerState {
 
   /// All geometry fields are null until the first launch persists them.
   const PersistentWindowManagerState({
-    this.positionScaleFactor,
     this.windowSize,
     this.windowPosition,
     this.isMaximized = false,
@@ -20,14 +18,12 @@ class PersistentWindowManagerState {
 
   /// Returns a new instance with the specified fields replaced.
   PersistentWindowManagerState copyWith({
-    double? positionScaleFactor,
     Size? windowSize,
     Offset? windowPosition,
     bool? isMaximized,
     bool? isFullScreen,
   }) {
     return PersistentWindowManagerState(
-      positionScaleFactor: positionScaleFactor ?? this.positionScaleFactor,
       windowSize: windowSize ?? this.windowSize,
       windowPosition: windowPosition ?? this.windowPosition,
       isMaximized: isMaximized ?? this.isMaximized,
@@ -38,7 +34,6 @@ class PersistentWindowManagerState {
   /// Converts the current state to a JSON map.
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
-      'positionScaleFactor': positionScaleFactor,
       'windowSize': windowSize == null
           ? null
           : <String, double>{
@@ -59,7 +54,6 @@ class PersistentWindowManagerState {
   /// Creates a new instance of [PersistentWindowManagerState] from a JSON map.
   static PersistentWindowManagerState fromJson(Map<String, dynamic> json) {
     return PersistentWindowManagerState(
-      positionScaleFactor: json['positionScaleFactor'] as double?,
       windowSize: json['windowSize'] == null
           ? null
           : Size(
@@ -82,7 +76,6 @@ class PersistentWindowManagerState {
       identical(this, other) ||
       other is PersistentWindowManagerState &&
           runtimeType == other.runtimeType &&
-          positionScaleFactor == other.positionScaleFactor &&
           windowSize == other.windowSize &&
           windowPosition == other.windowPosition &&
           isMaximized == other.isMaximized &&
@@ -90,7 +83,6 @@ class PersistentWindowManagerState {
 
   @override
   int get hashCode => Object.hash(
-        positionScaleFactor,
         windowSize,
         windowPosition,
         isMaximized,

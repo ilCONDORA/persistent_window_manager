@@ -2,7 +2,7 @@ name: persistent_window_manager
 description:
   "Saves and restores desktop window position, size, maximized and full-screen
   state between app launches on Desktop platforms."
-version: 3.0.1
+version: 3.1.0
 homepage: https://github.com/ilCONDORA/persistent_window_manager
 repository: https://github.com/ilCONDORA/persistent_window_manager
 
@@ -30,6 +30,7 @@ dependencies:
   screen_retriever: ^0.2.2
   #-
   hydrated_bloc: ^11.0.0 # Persistent state management with BLoC
+  logger: ^2.7.0
 
 dev_dependencies:
   flutter_test:
